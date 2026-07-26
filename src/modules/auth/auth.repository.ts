@@ -1,4 +1,4 @@
-import api from "../../lib"
+import api from "../../lib/api"
 import { User } from "../users/user.entity"
 
 export const authRepository = {
@@ -25,5 +25,11 @@ export const authRepository = {
         })
         const { user, token } = result.data
         return { user: new User(user), token }
+    },
+    async getCurrentUser(): Promise<User | undefined> {
+        const result = await api.get('/auth/me')
+        if(result.data == null) return undefined
+        
+        return new User(result.data)
     }
 }
