@@ -5,6 +5,6 @@ export const addAuthorizationHeader = (
 ) => {
     const token = localStorage.getItem('token')
     if (token == null) return config
-    config.headers.Authorization == `Bearer ${token}`
+    config.headers.Authorization = `Bearer ${token}`
     return config
 }
