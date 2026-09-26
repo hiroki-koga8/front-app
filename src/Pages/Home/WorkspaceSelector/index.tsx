@@ -3,15 +3,26 @@ import { useUiStore } from '../../../modules/ui/ui.state';
 import { workspaceRepository } from '../../../modules/workspaces/workspace.repository';
 import CreateWorkspaceModal from './CreateWorkspaceModal';
 import ProfileModal from './ProfileModal';
+import type { Workspace } from '../../../modules/workspaces/workspace.entity';
+import { useCurrentUserStore } from '../../../modules/auth/current-user.state';
 
-function WorkspaceSelector() {
+interface Props {
+  workspaces: Workspace[];
+  setWorkspaces: (workspaces: Workspace[]) => void;
+  selectedWorkspaceId: string;
+}
+
+function WorkspaceSelector(props: Props) {
+  const { workspaces, setWorkspaces, selectedWorkspaceId } = props;
   const {showCreateWorkspaceModal, setShowCrateWorkspaceModal} = useUiStore();
   const navigate = useNavigate();
+  const { setCurrentUser } = useCurrentUserStore()
 
   const createWorkspace = async (name: string) => {
     try {
       const newWorkspace = await workspaceRepository.create(name);
       setShowCrateWorkspaceModal(false)
+      setWorkspaces([...workspaces, newWorkspace])
       navigate(`/${newWorkspace.id}/${newWorkspace.channels[0].id}`)
     }
     catch (error){
@@ -19,15 +30,25 @@ function WorkspaceSelector() {
     }
   }
 
+  const logout = () => {
+    localStorage.removeItem('token')
+    setCurrentUser(undefined)
+  }
+
   return (
     <div className="workspace-selector">
       <div className="workspaces">
-        <div key={1} className={'workspace-icon'}>
-          A
-        </div>
-        <div key={2} className={'workspace-icon'}>
-          B
-        </div>
+        {workspaces.map((workspace) => (
+          <div 
+            key={workspace.id} 
+            className={`workspace-icon ${selectedWorkspaceId == workspace.id ? 'active' : ''}`}
+            onClick={() => 
+              navigate(`/${workspace.id}/${workspace.channels[0].id}`)
+            }
+          >
+            {workspace.name.charAt(0)}
+          </div>
+        ))}
         <div className="workspace-icon add" onClick={() => setShowCrateWorkspaceModal(true)}>+</div>
       </div>
       <div className="user-profile">
@@ -40,7 +61,7 @@ function WorkspaceSelector() {
             className="message-image"
           />
         </div>
-        <div className="logout-button" title="ログアウト">
+        <div className="logout-button" title="ログアウト" onClick={logout}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="16"
