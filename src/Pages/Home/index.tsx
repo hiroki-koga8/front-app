@@ -9,11 +9,15 @@ import { Workspace } from '../../modules/workspaces/workspace.entity';
 import { workspaceRepository } from '../../modules/workspaces/workspace.repository';
 import { Channel } from '../../modules/channels/channel.entity';
 import { channelRepository } from '../../modules/channels/channel.repository';
+import { Message } from '../../modules/messages/message.entity';
+import { messageRepository } from '../../modules/messages/message.repostiory';
+import { subscribe, unsubscribe } from '../../lib/api/socket';
 
 function Home() {
   const {currentUser} = useCurrentUserStore()
   const [workspaces, setWorkspaces ] = useState<Workspace[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const params = useParams();
   const { workspaceId, channelId } = params;
   const selectedWorkspace = workspaces.find((workspace) => workspace.id === workspaceId)
@@ -25,8 +29,16 @@ function Home() {
   },[])
 
   useEffect(() => {
-    fetchChannel();
+    fetchChannels();
+    subscribe(workspaceId!, handleNewMessage, handleDeleteMessage)
+    return () => {
+      unsubscribe(workspaceId!)
+    }
   },[workspaceId])
+
+  useEffect(() => {
+    fetchMessages();
+  },[channelId])
 
   const fetchWorkspaces = async () => {
     try {
@@ -34,17 +46,35 @@ function Home() {
       setWorkspaces(workspaces);
     }
     catch (error) {
-      console.error('ワークスペースの取得に失敗しました', error)
+      console.error('繝ｯ繝ｼ繧ｯ繧ｹ繝壹�ｼ繧ｹ縺ｮ蜿門ｾ励↓螟ｱ謨励＠縺ｾ縺励◆', error)
     }
   }
 
-  const fetchChannel = async () => {
+  const handleNewMessage = (message: Message) => {
+    setMessages((messages) => [message, ...messages]);
+  }
+
+  const handleDeleteMessage = (messageId: string) => {
+    setMessages((messages) => messages.filter((msg) => msg.id !== messageId))
+  }
+
+  const fetchChannels = async () => {
     try {
       const channels = await channelRepository.find(workspaceId!);
       setChannels(channels);
     }
     catch (error) {
-      console.error('チャンネルの取得に失敗しました', error)
+      console.error('繝√Ε繝ｳ繝阪Ν縺ｮ蜿門ｾ励↓螟ｱ謨励＠縺ｾ縺励◆', error)
+    }
+  }
+
+  const fetchMessages = async () => {
+    try {
+      const messages = await messageRepository.find(workspaceId!, channelId!);
+      setMessages(messages);
+    }
+    catch (error) {
+      console.error('繝｡繝�繧ｻ繝ｼ繧ｸ縺ｮ蜿門ｾ励↓螟ｱ謨励＠縺ｾ縺励◆', error)
     }
   }
   
@@ -59,8 +89,20 @@ function Home() {
       />
       {selectedWorkspace != null && selectedChannel != null ? (
         <>
-          <Sidebar selectedWorkspace={selectedWorkspace!} channels={channels} selectedChannelId={channelId!} setChannels={setChannels}/>
-          <MainContent selectedChannel={selectedChannel} channels={channels} setChannels={setChannels} selectedWorkspaceId={selectedWorkspace.id}/>
+          <Sidebar
+            selectedWorkspace={selectedWorkspace!} 
+            channels={channels} 
+            selectedChannelId={channelId!} 
+            setChannels={setChannels}
+          />
+          <MainContent 
+            selectedChannel={selectedChannel} 
+            channels={channels} 
+            setChannels={setChannels} 
+            selectedWorkspaceId={selectedWorkspace.id}
+            messages={messages}
+            setMessages={setMessages}
+          />
         </>
       ) : (
         <div className='sidebar'></div>
